@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nyc-taxi-etl-job
+spec:
+  # This schedule means "Run every 5 minutes"
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: etl-script
+            # We are going to build a lean, custom Docker image for this!
+            image: my-k8s-etl:latest 
+            imagePullPolicy: Never # Tells K8s to use our local image, not look on Docker Hub
+            command: ["python", "/app/scripts/etl_pipeline.py"]
+            env:
+              - name: DATABASE_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: etl-secrets
+                    key: DATABASE_URL
+          restartPolicy: OnFailure
