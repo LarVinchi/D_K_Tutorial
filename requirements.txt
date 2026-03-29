@@ -1,0 +1,6 @@
+pandas [cite: 1]
+sqlalchemy [cite: 1]
+psycopg2-binary [cite: 1]
+requests [cite: 1]
+pyarrow [cite: 1]
+fastparquet [cite: 1]
