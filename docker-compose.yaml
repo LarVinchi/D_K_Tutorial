@@ -1,5 +1,3 @@
-version: '3.8'
-
 # This block defines common settings so we don't repeat ourselves
 x-airflow-common:
   &airflow-common

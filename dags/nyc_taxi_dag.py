@@ -22,7 +22,7 @@ with DAG(
     'nyc_taxi_etl_pipeline',
     default_args=default_args,
     description='Sequential ETL pipeline for NYC Taxi Data',
-    schedule_interval='@monthly',   # Runs once per month logically
+    schedule='@monthly',   # Runs once per month logically
     start_date=datetime(2024, 1, 1), # Start at Jan 2024
     end_date=datetime(2024, 4, 1),   # Stop at April 2024 (Prevents infinite future loops)
     catchup=True,                    # CRITICAL: Tells Airflow to run all past missed months

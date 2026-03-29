@@ -1,5 +1,5 @@
 # Use the official Airflow image as our base
-FROM apache/airflow:2.8.1-python3.9
+FROM apache/airflow:slim-3.1.8-python3.12
 
 # Switch to the root user briefly to install any necessary system packages (if needed)
 USER root

@@ -13,7 +13,7 @@ with DAG(
     'nyc_taxi_etl_k8s_pipeline',
     default_args=default_args,
     description='K8s native ETL pipeline for NYC Taxi Data',
-    schedule_interval='@monthly',
+    schedule='@monthly',
     start_date=datetime(2024, 1, 1),
     end_date=datetime(2024, 4, 1),
     catchup=True,
