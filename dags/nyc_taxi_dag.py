@@ -32,7 +32,7 @@ with DAG(
 
     # 1. logical_date.strftime("%Y-%m") dynamically becomes "2024-01", then "2024-02", etc.
     # 2. 'sleep 180' pauses the worker for 3 minutes after the Python script finishes.
-    #    This gives your students time to watch the UI and check the database before the next month starts.
+    #    This gives students time to watch the UI and check the database before the next month starts.
     run_etl_task = BashOperator(
         task_id='run_etl_script',
         bash_command='python /opt/airflow/scripts/etl_pipeline.py {{ logical_date.strftime("%Y-%m") }} && sleep 180',
