@@ -1,22 +1,29 @@
 # This block defines common settings so we don't repeat ourselves
-x-airflow-common:
-  &airflow-common
+x-airflow-common: &airflow-common
   build:
     context: .
     dockerfile: docker/Dockerfile
   environment:
-    # Tell Airflow to use our Postgres container
     - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
     - AIRFLOW__CORE__LOAD_EXAMPLES=False
-    - AIRFLOW__WEBSERVER__SECRET_KEY=this_is_a_very_secure_secret_key
-    # This is the environment variable our etl_pipeline.py looks for!
-    - DATABASE_URL=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+    # FIX: Updated to API secret key to resolve the DeprecationWarning
+    - AIRFLOW__API__SECRET_KEY=this_is_a_very_secure_secret_key
+    # FIX: Added FAB provider and Auth Manager settings for Airflow 3
+    - _PIP_ADDITIONAL_REQUIREMENTS=apache-airflow-providers-fab
+    - AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    # FIX: Appended /execution/ to point to the correct internal API endpoints
+    - AIRFLOW__CORE__EXECUTION_API_SERVER_URL=http://airflow-webserver:8080/execution/
+    # FIX: Provide a shared, 64+ byte secret so all containers use the exact same key
+    - AIRFLOW__API_AUTH__JWT_SECRET=this_is_a_very_long_jwt_secret_key_that_is_at_least_64_bytes_long_for_secure_hashing
+    - AIRFLOW__CORE__INTERNAL_API_SECRET_KEY=another_very_long_secret_key_that_is_at_least_64_bytes_long_for_internal_api_auth
   volumes:
-    # Mount our local directories into the container so we can edit code without rebuilding
     - ./dags:/opt/airflow/dags
     - ./scripts:/opt/airflow/scripts
+    # FIX: Added a shared volume for logs so the Web UI can read task logs
+    - ./logs:/opt/airflow/logs
   depends_on:
+    &airflow-common-depends-on
     postgres:
       condition: service_healthy
 
@@ -39,17 +46,21 @@ services:
   airflow-init:
     <<: *airflow-common
     command: >
-      bash -c "airflow db migrate &&
-      airflow users create -r Admin -u admin -p admin -e admin@example.com -f Admin -l User"
+      bash -c "
+        airflow db migrate &&
+        airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com
+      "
     restart: on-failure
 
   # 3. The Airflow UI
   airflow-webserver:
     <<: *airflow-common
-    command: webserver
+    command: api-server
     ports:
       - "8080:8080"
     depends_on:
+      # FIX: YAML syntax to merge the inherited dependencies with the new ones
+      <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
 
@@ -58,5 +69,16 @@ services:
     <<: *airflow-common
     command: scheduler
     depends_on:
+      # FIX: Same YAML merge fix here
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # 5. The DAG Processor (Mandatory in Airflow 3 for parsing Python files)
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    depends_on:
+      <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully

@@ -5,8 +5,9 @@ Orchestrates the NYC Taxi ETL pipeline dynamically.
 Demonstrates Airflow Backfilling, Logical Dates, and Jinja Templating.
 """
 
+import os # FIX: Added to allow merging with existing system environment variables
 from airflow import DAG
-from airflow.operators.bash import BashOperator
+from airflow.providers.standard.operators.bash import BashOperator # FIX: Updated import for Airflow 3
 from datetime import datetime, timedelta
 
 default_args = {
@@ -35,6 +36,11 @@ with DAG(
     run_etl_task = BashOperator(
         task_id='run_etl_script',
         bash_command='python /opt/airflow/scripts/etl_pipeline.py {{ logical_date.strftime("%Y-%m") }} && sleep 180',
+        # FIX: Provide the database credentials directly to the python script
+        env={
+            "DATABASE_URL": "postgresql://airflow:airflow@postgres:5432/airflow",
+            **os.environ # Keeps existing Airflow variables intact
+        }
     )
 
     run_etl_task
